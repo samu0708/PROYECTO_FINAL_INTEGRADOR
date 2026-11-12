@@ -174,9 +174,9 @@ public class BancoDeOrdenamiento {
         System.out.println();
         System.out.println("Paso 2. El area de comunicaciones pide el ranking de estaciones"
                 + " mas contaminadas. Ordenamos por PM2.5.");
-        Ordenador.ordenarPorPm25(datos);
-        System.out.println("        Ranking listo. PM2.5 mas bajo: " + datos[0].getPm25()
-                + " | mas alto: " + datos[datos.length - 1].getPm25());
+        LecturaSensor[] ranking = Ordenador.rankingPorPm25(datos);
+        System.out.println("        Ranking listo. PM2.5 mas bajo: " + ranking[0].getPm25()
+                + " | mas alto: " + ranking[ranking.length - 1].getPm25());
 
         System.out.println();
         System.out.println("Paso 3. Otro usuario vuelve a consultar la misma lectura de siempre.");

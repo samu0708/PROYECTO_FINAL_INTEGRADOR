@@ -237,21 +237,23 @@ public class Ordenador {
      * Ordena las lecturas por concentracion de PM2.5, de menor a mayor.
      * Sirve para construir el ranking de estaciones mas contaminadas.
      *
-     * TODO 3: este metodo hace exactamente lo que promete.
-     * Ejecuta el experimento 5 y averigua que rompe.
+     * TODO 3 (resuelto): dos problemas.
+     *  1) La insercion es O(n^2): con 100.000 lecturas tarda demasiado.
+     *     Se usa Arrays.sort con comparador (TimSort, O(n log n), estable).
+     *  2) Ordena EN SITIO, destruyendo el orden cronologico: despues la
+     *     busqueda binaria por timestamp deja de cumplir su precondicion.
+     *     Para un ranking que no dane los datos, usar rankingPorPm25().
      */
     public static void ordenarPorPm25(LecturaSensor[] datos) {
         reiniciarContadores();
-        for (int i = 1; i < datos.length; i++) {
-            LecturaSensor actual = datos[i];
-            int j = i - 1;
-            while (j >= 0 && compararPorPm25(datos[j], actual) > 0) {
-                datos[j + 1] = datos[j];
-                intercambios++;
-                j--;
-            }
-            datos[j + 1] = actual;
-        }
+        java.util.Arrays.sort(datos, (a, b) -> compararPorPm25(a, b));
+    }
+
+    /** Ranking por PM2.5 sobre una COPIA: el arreglo original conserva su orden. */
+    public static LecturaSensor[] rankingPorPm25(LecturaSensor[] datos) {
+        LecturaSensor[] copia = datos.clone();
+        ordenarPorPm25(copia);
+        return copia;
     }
 
     /** Verifica si un arreglo esta ordenado ascendentemente por timestamp. */
