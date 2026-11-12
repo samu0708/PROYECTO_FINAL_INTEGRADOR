@@ -50,7 +50,7 @@ public class HistorialNavegable {
         } else {
             // enlazamos hacia adelante
             ultimo.setSiguiente(nuevo);
-            // ENLACE HASTA ENTRADA TRASERA (TODO 1)
+            // enlace hacia atras (el nodo nuevo conoce a su anterior)
             nuevo.setAnterior(ultimo);
             // avanzamos el puntero de último
             ultimo = nuevo;
