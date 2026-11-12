@@ -42,3 +42,9 @@ Thumbs.db
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
+# Archivos generados por BancoDePersistencia
+/data.csv
+/data.bin
+/data.ser
+/test_perdida.csv
+/test_separador.csv
