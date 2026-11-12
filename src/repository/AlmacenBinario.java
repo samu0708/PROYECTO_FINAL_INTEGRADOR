@@ -70,7 +70,7 @@ public class AlmacenBinario {
             double temp = raf.readDouble();
             double hum = raf.readDouble();
 
-            return new LecturaSensor(id.toString().trim(), ts.toString().trim(), pm25, temp, hum);
+            return new LecturaSensor(id.toString().trim(), ts.toString().trim(), temp, hum, pm25);
         }
     }
 

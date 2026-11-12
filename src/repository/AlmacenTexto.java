@@ -23,16 +23,16 @@ public class AlmacenTexto {
     public void guardar(List<LecturaSensor> lecturas) throws IOException {
         try (BufferedWriter escritor = new BufferedWriter(new FileWriter(ruta))) {
             // Encabezado
-            escritor.write("idSensor,timestamp,pm25,temp,humedad,estado,observacion");
+            escritor.write("idSensor,timestamp,pm25,temperatura,humedad");
             escritor.newLine();
 
             for (LecturaSensor l : lecturas) {
                 StringBuilder sb = new StringBuilder();
                 sb.append(l.getIdSensor()).append(SEPARADOR)
-                  .append(l.getTimestamp()).append(SEPARADOR)
-                  .append(l.getPm25()).append(SEPARADOR)
-                  .append(l.getTemperatura()).append(SEPARADOR)
-                  .append(l.getHumedad());
+                        .append(l.getTimestamp()).append(SEPARADOR)
+                        .append(l.getPm25()).append(SEPARADOR)
+                        .append(l.getTemperatura()).append(SEPARADOR)
+                        .append(l.getHumedad());
 
                 escritor.write(sb.toString());
                 escritor.newLine();
@@ -47,13 +47,12 @@ public class AlmacenTexto {
             while ((linea = lector.readLine()) != null) {
                 String[] campos = linea.split(SEPARADOR);
                 if (campos.length >= 5) {
-                    lecturas.add(new LecturaSensor(
-                        campos[0],
-                        campos[1],
-                        Double.parseDouble(campos[2]),
-                        Double.parseDouble(campos[3]),
-                        Double.parseDouble(campos[4])
-                    ));
+                    // El archivo se escribe como pm25,temperatura,humedad;
+                    // el constructor espera temperatura,humedad,pm25.
+                    double pm25 = Double.parseDouble(campos[2]);
+                    double temp = Double.parseDouble(campos[3]);
+                    double hum  = Double.parseDouble(campos[4]);
+                    lecturas.add(new LecturaSensor(campos[0], campos[1], temp, hum, pm25));
                 }
             }
         }
