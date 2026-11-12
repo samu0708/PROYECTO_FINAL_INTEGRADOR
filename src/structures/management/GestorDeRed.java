@@ -6,34 +6,33 @@ import java.util.stream.Collectors;
 
 /**
  * GestorDeRed - Módulo Integrador de Estructuras de Datos
- * VERSION ESTUDIANTE
  *
- * Objetivo: Implementar la gestión de la red utilizando las colecciones de Java (JCF).
- * El éxito de este módulo no es solo que el código compile, sino que elijas
- * la estructura correcta para cada problema.
+ * Gestión de la red de sensores con el Java Collections Framework (JCF).
+ * Cada colección se eligió según la carga de trabajo de su problema.
  */
 public class GestorDeRed {
-    // 1. Historial de Eventos: Registro lineal de todas las actividades
+    // 1. Historial de Eventos: se agrega al final y se lee por posición -> ArrayList
     private List<String> historialEventos;
 
-    // 2. Navegador de Alertas: Permite moverse adelante y atrás entre alertas
+    // 2. Navegador de Alertas: alertas que están DELANTE del cursor (Deque)
     private Deque<String> navegadorAlertas;
+    // Alertas que están DETRÁS del cursor (el tope es la más cercana)
+    private Deque<String> alertasAnteriores;
     private String alertaActual;
 
-    // 3. Ciclo de Monitoreo: Gestión de la rotación de sensores a consultar
+    // 3. Ciclo de Monitoreo: cola FIFO de turnos
     private Queue<String> colaMonitoreo;
 
-    // 4. Topología de la Red: Grafo de conexiones entre estaciones (Lista de adyacencia)
+    // 4. Topología de la Red: grafo como lista de adyacencia
     private Map<String, List<String>> topologiaRed;
 
-    // 5. Buffer de Ingesta: Cola de espera para procesar lecturas entrantes
+    // 5. Buffer de Ingesta: cola FIFO de lecturas entrantes
     private Queue<LecturaSensor> bufferIngesta;
 
     public GestorDeRed() {
-        // TODO: Inicializa las colecciones usando las implementaciones más adecuadas de Java
-        // (ArrayList, ArrayDeque, HashMap, etc.)
         this.historialEventos = new ArrayList<>();
         this.navegadorAlertas = new ArrayDeque<>();
+        this.alertasAnteriores = new ArrayDeque<>();
         this.colaMonitoreo = new ArrayDeque<>();
         this.topologiaRed = new HashMap<>();
         this.bufferIngesta = new ArrayDeque<>();
@@ -43,43 +42,57 @@ public class GestorDeRed {
     // SECCIÓN 1: HISTORIAL Y EVENTOS
     // =========================================================================
 
+    // TODO 1
     public void agregarEvento(String evento) {
-        // TODO 1: Implementar la adición del evento al historial.
-        // Debe registrarse la fecha/hora actual junto con la descripción del evento.
-        // Ejemplo: "[2026-10-24 10:00] Sensor EST-01 activado"
+        historialEventos.add("[" + new java.util.Date() + "] " + evento);
     }
 
     public List<String> obtenerEventosRecientes(int limite) {
+        // Se devuelve una COPIA: subList es una vista y falla si el historial cambia después.
         if (historialEventos.size() <= limite) return new ArrayList<>(historialEventos);
-        return historialEventos.subList(historialEventos.size() - limite, historialEventos.size());
+        return new ArrayList<>(
+                historialEventos.subList(historialEventos.size() - limite, historialEventos.size()));
     }
 
+    // TODO 10
     public void limpiarHistorialAntiguo(int mantener) {
-        // TODO 10: Implementar la optimización del historial.
-        // Eliminar los registros más antiguos para mantener solo los últimos 'mantener' eventos.
+        if (mantener < 0) mantener = 0;
+        int exceso = historialEventos.size() - mantener;
+        if (exceso > 0) {
+            // Un solo desplazamiento O(n), en vez de n veces remove(0) (O(n^2)).
+            historialEventos.subList(0, exceso).clear();
+        }
     }
 
     // =========================================================================
     // SECCIÓN 2: NAVEGACIÓN DE ALERTAS
     // =========================================================================
 
+    /**
+     * La primera alerta registrada queda como actual; las demás quedan "adelante".
+     */
     public void registrarAlerta(String alerta) {
-        navegadorAlertas.addLast(alerta);
-        alertaActual = alerta;
+        if (alertaActual == null) {
+            alertaActual = alerta;
+        } else {
+            navegadorAlertas.addLast(alerta);
+        }
     }
 
+    // TODO 2
     public String navegarAlSiguiente() {
-        // TODO 2: Implementar la lógica de desplazamiento hacia adelante.
-        // Debe devolver la siguiente alerta o null si no hay más.
-        // Recuerda actualizar el estado de 'alertaActual'.
-        return null;
+        if (navegadorAlertas.isEmpty()) return null;
+        alertasAnteriores.addFirst(alertaActual);
+        alertaActual = navegadorAlertas.pollFirst();
+        return alertaActual;
     }
 
+    // TODO 3
     public String navegarAlAnterior() {
-        // TODO 3: Implementar la lógica de desplazamiento hacia atrás.
-        // Debe devolver la alerta anterior o null si es la primera.
-        // Recuerda actualizar el estado de 'alertaActual'.
-        return null;
+        if (alertasAnteriores.isEmpty()) return null;
+        navegadorAlertas.addFirst(alertaActual);
+        alertaActual = alertasAnteriores.pollFirst();
+        return alertaActual;
     }
 
     public String getAlertaActual() { return alertaActual; }
@@ -88,39 +101,57 @@ public class GestorDeRed {
     // SECCIÓN 3: CICLO DE MONITOREO
     // =========================================================================
 
+    // TODO 4
     public void programarConsulta(String idSensor) {
-        // TODO 4: Implementar la programación de la consulta.
-        // El sensor debe agregarse a la cola solo si NO está ya programado.
+        if (idSensor != null && !colaMonitoreo.contains(idSensor)) {
+            colaMonitoreo.add(idSensor);
+        }
     }
 
+    // TODO 5
     public String obtenerSiguienteSensor() {
-        // TODO 5: Implementar la rotación del ciclo.
-        // Debe extraer el sensor del frente de la cola y volverlo a insertar al final
-        // para garantizar que todos los sensores sean consultados continuamente.
-        return null;
+        String sensor = colaMonitoreo.poll();
+        if (sensor == null) return null;
+        colaMonitoreo.add(sensor); // rotación: vuelve al final
+        return sensor;
     }
 
     // =========================================================================
     // SECCIÓN 4: TOPOLOGÍA DE RED
     // =========================================================================
 
+    /**
+     * Registra un sensor en la red sin conexiones (nodo aislado).
+     * Necesario para que el reto 9 tenga sentido.
+     */
+    public void registrarSensor(String idSensor) {
+        topologiaRed.computeIfAbsent(idSensor, k -> new ArrayList<>());
+    }
+
+    // TODO 6
     public void registrarConexion(String sensorA, String sensorB) {
-        // TODO 6: Implementar la conexión bidireccional entre dos sensores.
-        // Debe agregar sensorB a la lista de vecinos de sensorA, y viceversa.
-        // Asegurar que no se creen conexiones duplicadas.
+        registrarSensor(sensorA);
+        registrarSensor(sensorB);
+        if (sensorA.equals(sensorB)) return; // sin auto-conexiones
+
+        List<String> vecinosA = topologiaRed.get(sensorA);
+        List<String> vecinosB = topologiaRed.get(sensorB);
+        if (!vecinosA.contains(sensorB)) vecinosA.add(sensorB);
+        if (!vecinosB.contains(sensorA)) vecinosB.add(sensorA);
     }
 
+    // TODO 7
     public List<String> obtenerVecinos(String idSensor) {
-        // TODO 7: Implementar la consulta de conexiones.
-        // Debe devolver la lista de sensores conectados al idSensor proporcionado.
-        // Retornar una lista vacía si el sensor no tiene conexiones.
-        return null;
+        return new ArrayList<>(topologiaRed.getOrDefault(idSensor, Collections.emptyList()));
     }
 
+    // TODO 9
     public List<String> detectarEstacionesAisladas() {
-        // TODO 9: Implementar la detección de nodos huérfanos.
-        // Debe retornar una lista de todos los sensores registrados que no tienen ninguna conexión.
-        return null;
+        List<String> aisladas = new ArrayList<>();
+        for (Map.Entry<String, List<String>> e : topologiaRed.entrySet()) {
+            if (e.getValue().isEmpty()) aisladas.add(e.getKey());
+        }
+        return aisladas;
     }
 
     // =========================================================================
@@ -131,15 +162,15 @@ public class GestorDeRed {
         bufferIngesta.add(lectura);
     }
 
+    // TODO 8
     public LecturaSensor procesarSiguienteLectura() {
-        // TODO 8: Implementar la extracción del buffer.
-        // Debe remover y devolver la lectura más antigua del buffer (FIFO).
-        return null;
+        return bufferIngesta.poll(); // FIFO; null si está vacío
     }
 
+    // TODO EXTRA
     public List<LecturaSensor> filtrarAlertasCriticas(double limitePm25) {
-        // TODO EXTRA: Usar Streams para filtrar lecturas con PM2.5 superior al límite.
-        // Debe retornar una lista con las lecturas filtradas.
-        return null;
+        return bufferIngesta.stream()
+                .filter(l -> l.getPm25() > limitePm25)
+                .collect(Collectors.toList());
     }
 }
