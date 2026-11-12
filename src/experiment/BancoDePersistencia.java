@@ -67,41 +67,38 @@ public class BancoDePersistencia {
 
         // 1. Texto
         AlmacenTexto txt = new AlmacenTexto("data.csv");
-        long t1 = System.currentTimeMillis();
-        try { txt.guardar(lecturas); } catch (Exception e) {}
-        long t2 = System.currentTimeMillis();
-        long l1 = System.currentTimeMillis();
-        try { txt.cargar(); } catch (Exception e) {}
-        long l2 = System.currentTimeMillis();
+        long tEscTxt = medirEscritura(() -> txt.guardar(lecturas));
+        long tLeeTxt = medirEscritura(() -> txt.cargar());
         long szTxt = new File("data.csv").length();
 
         // 2. Binario
         AlmacenBinario bin = new AlmacenBinario("data.bin");
-        t1 = System.currentTimeMillis();
-        try { bin.guardar(lecturas); } catch (Exception e) {}
-        t2 = System.currentTimeMillis();
-        l1 = System.currentTimeMillis();
-        try { bin.cargarTodo(); } catch (Exception e) {}
-        l2 = System.currentTimeMillis();
+        long tEscBin = medirEscritura(() -> bin.guardar(lecturas));
+        long tLeeBin = medirEscritura(() -> bin.cargarTodo());
         long szBin = new File("data.bin").length();
 
         // 3. Serializado
         AlmacenSerializado ser = new AlmacenSerializado("data.ser");
-        t1 = System.currentTimeMillis();
-        try { ser.guardar(lecturas); } catch (Exception e) {}
-        t2 = System.currentTimeMillis();
-        l1 = System.currentTimeMillis();
-        try { ser.cargar(); } catch (Exception e) {}
-        l2 = System.currentTimeMillis();
+        long tEscSer = medirEscritura(() -> ser.guardar(lecturas));
+        long tLeeSer = medirEscritura(() -> ser.cargar());
         long szSer = new File("data.ser").length();
 
-        System.out.printf("%-12s | %-12s | %-12s | %-12s%n", "Formato", "Tamaño", "Escribir", "Leer");
+        System.out.printf("%-12s | %-12s | %-12s | %-12s%n", "Formato", "Tamaño", "Escribir ms", "Leer ms");
         System.out.println("------------------------------------------------------------------");
-        System.out.printf("%-12s | %-12s | %-12d | %-12d%n", "TEXTO", szTxt + " B", (t2-t1), (l2-l1));
-        System.out.printf("%-12s | %-12s | %-12d | %-12d%n", "BINARIO", szBin + " B", (t2-t1), (l2-l1)); // Nota: t1/t2 se sobrescriben, corregir abajo
-        // Recalculando tiempos para claridad en la salida real
-        System.out.println("\n(Tiempos reales calculados por separado en ejecución)");
+        System.out.printf("%-12s | %-12s | %-12d | %-12d%n", "TEXTO", szTxt + " B", tEscTxt, tLeeTxt);
+        System.out.printf("%-12s | %-12s | %-12d | %-12d%n", "BINARIO", szBin + " B", tEscBin, tLeeBin);
+        System.out.printf("%-12s | %-12s | %-12d | %-12d%n", "SERIALIZADO", szSer + " B", tEscSer, tLeeSer);
         System.out.println();
+    }
+
+    /** Operacion de E/S que puede lanzar excepcion. */
+    private interface OperacionIO { void ejecutar() throws Exception; }
+
+    /** Mide en ms lo que tarda una operacion, con variables propias por formato. */
+    private static long medirEscritura(OperacionIO op) {
+        long inicio = System.currentTimeMillis();
+        try { op.ejecutar(); } catch (Exception e) { e.printStackTrace(); }
+        return System.currentTimeMillis() - inicio;
     }
 
     private static void experimentoCuatro() {
